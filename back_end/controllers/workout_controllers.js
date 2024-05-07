@@ -2,16 +2,37 @@ const Workout = require('../models/WorkoutModules')
 const mongoose = require('mongoose')
 
 //all workouts
+
 const getallWorkouts = async (req, res) => {
-  const workouts = await Workout.find({}).sort({ createdAt: -1 })
+  if (!req.user || !req.user._id) {
+    return res.status(401).json({ message: "Bruker ikke autentisert" });
+  }
 
-  res.status(200).json(workouts)
+  const user_id = req.user._id;
 
+  try {
+    const workouts = await Workout.find({ user_id }).sort({ createdAt: -1 });
 
+    if (workouts.length === 0) {
+      return res.status(404).json({ message: "Ingen treningsøkter funnet for brukeren" });
+    }
+
+    res.status(200).json(workouts);
+  } catch (error) {
+    console.error('Feil under henting av treningsøkter:', error);
+    res.status(500).json({ message: "Serverfeil ved henting av treningsøkter" });
+  }
 }
 
 
-//get a singel workout
+
+
+
+
+
+
+
+//get a single workout
 const getONEWorkout = async (req, res) => {
   const { id } = req.params
 
@@ -54,7 +75,8 @@ const createWorkout = async (req, res) => {
 
   //add doc to db 
   try {
-    const workout = await Workout.create({ title, load, reps })
+    const user_id = req.user._id
+    const workout = await Workout.create({ title, load, reps, user_id })
     res.status(200).json(workout)
   } catch (error) {
     res.status(400).json({ error: error.message })
